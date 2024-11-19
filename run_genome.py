@@ -2,7 +2,7 @@ import pickle
 import neat
 import os
 import numpy as np
-import environment_pyboy_neat as emt  # Assuming this is your environment
+import environment_pyboy_neat_mario as emt  # Assuming this is your environment
 
 # Load the configuration.
 config_path = os.path.join('config-feedforward')
