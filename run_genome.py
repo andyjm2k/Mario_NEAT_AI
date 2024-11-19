@@ -11,7 +11,7 @@ config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction,
                      config_path)
 
 # Load the saved winner.
-with open('winner_100.pkl', 'rb') as input_file:
+with open('winner.pkl', 'rb') as input_file:
     winner = pickle.load(input_file)
 
 # Recreate the network.
@@ -31,7 +31,7 @@ def preprocess_observation(obs):
 
 # Define a function to run simulations or tests with the loaded network.
 def run_with_winner(net, env, steps=100000, render=True):
-    for episode in range(1):  # Run for 20 episodes for example
+    for episode in range(5):  # Run for 20 episodes for example
         obs, _ = env.reset()  # Extract observation from tuple
         total_reward = 0
         for step in range(steps):

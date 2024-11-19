@@ -1,4 +1,4 @@
-import environment_pyboy_neat as emt
+import environment_pyboy_neat_mario as emt
 import argparse
 import numpy as np
 from neat import nn, population, statistics, parallel
@@ -55,8 +55,8 @@ def simulate_species(net, env, episodes=1, steps=5000, render=False):
             # Decide on an action based on the network output
             action = np.argmax(outputs)
             obs, reward, done, trunc, _ = env.step(action)
-            if render:
-                env.render()
+            # if render:
+            #    env.render()
             if done:
                 break
             cum_reward += reward
@@ -75,7 +75,7 @@ def simulate_species(net, env, episodes=1, steps=5000, render=False):
 def worker_evaluate_genome(g, config):
     my_env = emt.GbaGame()
     net = nn.feed_forward.FeedForwardNetwork.create(g, config)
-    return simulate_species(net, my_env, args.episodes, args.max_steps, render=args.render)
+ 
 
 
 def train_network(env):
@@ -121,7 +121,7 @@ def train_network(env):
     print('\nOutput:')
 
     winner_net = nn.feed_forward.FeedForwardNetwork.create(winner, cfg)
-    for i in range(20):
+    for i in range(5):
         simulate_species(winner_net, env, 1, args.max_steps, render=True)
 
 

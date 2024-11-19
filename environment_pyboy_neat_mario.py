@@ -10,7 +10,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.monitor import Monitor
 import os
 from collections import deque
-from pyboy import PyBoy, WindowEvent
+from pyboy import PyBoy
 import random
 
 
@@ -23,8 +23,7 @@ class GbaGame(Env):
         self.observation_space = Box(low=0, high=255, shape=(80, 40, 1), dtype=np.uint8)
         self.action_space = Discrete(4)
         self.cap = mss()
-        self.pyboy = PyBoy('ROMs/Super_Mario_Bros_Delux.gbc', window_type="headless",
-                           window_scale=3, game_wrapper=False)
+        self.pyboy = PyBoy('ROMs/Super_Mario_Bros_Delux.gbc', window='null')
         self.game_location = {'top': 53, 'left': 0, 'width': 318, 'height': 339}
         self.score_location = {'top': 53, 'left': 65, 'width': 70, 'height': 25}
         self.done_location = {'top': 28, 'left': 21, 'width': 100, 'height': 79}
@@ -107,8 +106,7 @@ class GbaGame(Env):
             self.pyboy.stop()
             del self.pyboy
             self.pyboy_counter = 0
-            self.pyboy = PyBoy('ROMs/Super_Mario_Bros_Delux.gbc', window_type="headless",
-                               window_scale=3, game_wrapper=False)
+            self.pyboy = PyBoy('ROMs/Super_Mario_Bros_Delux.gbc', window='null')
         if seed:
             np.random.seed(seed)
         self.reset_game_state()
@@ -120,7 +118,7 @@ class GbaGame(Env):
         return self.get_stacked_observation(), {}
 
     def render(self):
-        raw = np.array(self.pyboy.screen_image())[:, :, :3].astype(np.uint8)
+        raw = np.array(self.pyboy.screen.image)[:, :, :3].astype(np.uint8)
         rgb = cv2.cvtColor(raw, cv2.COLOR_BGR2RGB)
         cv2.imshow('Game', rgb)  # Display the cropped image
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -131,7 +129,7 @@ class GbaGame(Env):
         self.pyboy.stop()
 
     def get_observation(self):
-        raw = np.array(self.pyboy.screen_image())[:, :, :3].astype(np.uint8)
+        raw = np.array(self.pyboy.screen.image)[:, :, :3].astype(np.uint8)
         gray = cv2.cvtColor(raw, cv2.COLOR_BGR2GRAY)
         # Define the top-left corner and the size of the crop area
         x_start = 25  # Starting x-coordinate of the crop area
@@ -157,18 +155,18 @@ class GbaGame(Env):
                 self.pyboy.tick()
         if action == 1:
             self.release_all_keys()
-            self.pyboy.send_input(WindowEvent.PRESS_ARROW_RIGHT)
+            self.pyboy.button_press('right')
             for _ in range(self.wait_frames):  # tick for wait frames
                 self.pyboy.tick()
         if action == 2:
             self.release_all_keys()
-            self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
+            self.pyboy.button_press('a')
             for _ in range(self.wait_frames):  # tick for wait frames
                 self.pyboy.tick()
         if action == 0:
             self.release_all_keys()
-            self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
-            self.pyboy.send_input(WindowEvent.PRESS_ARROW_RIGHT)
+            self.pyboy.button_press('a')
+            self.pyboy.button_press('right')
             for _ in range(self.wait_frames):  # tick for wait frames
                 self.pyboy.tick()
 
@@ -241,7 +239,7 @@ class GbaGame(Env):
         return reward
 
     def detect_mario_fall(self):
-        value = self.pyboy.get_memory_value(0xc17f)
+        value = self.pyboy.memory[0xc17f]
         if value == 4:
             # print('life lost')
             return True
@@ -261,11 +259,11 @@ class GbaGame(Env):
         self.pyboy.load_state(file_like_object)
 
     def get_score(self):
-        d_1 = self.value_map(self.pyboy.get_memory_value(0xc103))
-        d_2 = self.value_map(self.pyboy.get_memory_value(0xc104))
-        d_3 = self.value_map(self.pyboy.get_memory_value(0xc105))
-        d_4 = self.value_map(self.pyboy.get_memory_value(0xc106))
-        d_5 = self.value_map(self.pyboy.get_memory_value(0xc107))
+        d_1 = self.value_map(self.pyboy.memory[0xc103])
+        d_2 = self.value_map(self.pyboy.memory[0xc104])
+        d_3 = self.value_map(self.pyboy.memory[0xc105])
+        d_4 = self.value_map(self.pyboy.memory[0xc106])
+        d_5 = self.value_map(self.pyboy.memory[0xc107])
         values = [d_1, d_2, d_3, d_4, d_5]
         score = 0
 
@@ -284,7 +282,7 @@ class GbaGame(Env):
 
     def found_flag(self):
         found = False
-        value = self.pyboy.get_memory_value(0xc02e)
+        value = self.pyboy.memory[0xc02e]
         if value == 80:
             found = True
             self.flag_reached = True
@@ -292,9 +290,9 @@ class GbaGame(Env):
 
     def timed_out(self):
         finish = False
-        v_1 = self.pyboy.get_memory_value(0x9811)
-        v_2 = self.pyboy.get_memory_value(0x9812)
-        v_3 = self.pyboy.get_memory_value(0x9813)
+        v_1 = self.pyboy.memory[0x9811]
+        v_2 = self.pyboy.memory[0x9812]
+        v_3 = self.pyboy.memory[0x9813]
         if v_1 == 208:
             if v_2 == 208:
                 if v_3 == 209:
@@ -303,7 +301,7 @@ class GbaGame(Env):
 
     def is_mario_stuck(self):
         stuck = False
-        v_1 = self.pyboy.get_memory_value(0xc175)
+        v_1 = self.pyboy.memory[0xc175]
         if self.mario_is_moving == 0:
             self.mario_is_moving = v_1
         if self.mario_is_moving == v_1:
@@ -316,7 +314,7 @@ class GbaGame(Env):
 
     def level_did_progress(self):
         progress = True
-        v_1 = self.pyboy.get_memory_value(0xc24b)
+        v_1 = self.pyboy.memory[0xc24b]
         if self.level_progress == 0:
             self.level_progress = v_1
             return 0
@@ -365,6 +363,6 @@ class GbaGame(Env):
             return 0
 
     def release_all_keys(self):
-        self.pyboy.send_input(WindowEvent.RELEASE_ARROW_LEFT)
-        self.pyboy.send_input(WindowEvent.RELEASE_ARROW_RIGHT)
-        self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
+        self.pyboy.button_release('left')
+        self.pyboy.button_release('right')
+        self.pyboy.button_release('a')
